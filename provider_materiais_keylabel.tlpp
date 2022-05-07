@@ -1,0 +1,93 @@
+#include "msobject.ch"
+#include "protheus.ch"
+#include "totvs.framework.treports.integratedprovider.th"
+  
+namespace custom.materiais
+  
+@totvsFrameworkTReportsIntegratedProvider(active=.T.)
+class SB1TReportsBusinessObject from totvs.framework.treports.integratedprovider.IntegratedProvider
+    public method new() as object
+    public method getDisplayName() as character
+    public method getDescription() as character
+    public method getData() as object
+    public method getSchema() as object
+endclass
+  
+method new() class SB1TReportsBusinessObject
+_Super:new()
+self:appendArea("Materiais - KeyLabel")
+self:setIsCBoxLookup(.T., .T.)
+return self
+  
+method getDisplayName() as character class SB1TReportsBusinessObject
+return "Produtos"
+  
+method getDescription() as character class SB1TReportsBusinessObject
+return "Produtos do Protheus"
+  
+method getData(nPage as numeric, oFilter as object) as object class SB1TReportsBusinessObject
+local cQuery as character
+local cAlias as character
+local nStart as numeric
+local nEnd as numeric
+local nCount as numeric
+
+nCount := 0  
+
+cQuery := "SELECT B1_FILIAL, B1_COD, B1_DESC, B1_TIPO, B1_UM, B1_UREV, B1_FILIAL, B1_PRV1 FROM " + RetSQLName("SB1") + " WHERE D_E_L_E_T_ = ' '"
+  
+//Os filtros serão setados na interface do novo TReports
+if oFilter:hasFilter()
+    cQuery += " AND " + oFilter:getSQLExpression()
+endif
+
+//Seta a quantidade de itens por página (Default 100)
+self:setPageSize(15)
+//Indica que terá próxima página (Default .F.)
+self:setHasNext(.T.)
+
+nStart := ((nPage - 1) * self:getPageSize())
+nEnd   := nPage * self:getPageSize()
+  
+cAlias := MPSysOpenQuery(cQuery)
+  
+(cAlias)->(DBSkip(nStart))
+
+while !(cAlias)->(Eof())
+    cDate := FwTimeStamp(6, StoD((cAlias)->B1_UREV))
+    self:oData:appendData({"Filial": (cAlias)->B1_FILIAL,;
+            "Codigo": (cAlias)->B1_COD,;
+            "Descricao": (cAlias)->B1_DESC,;
+            "Tipo": (cAlias)->B1_TIPO, ;
+            "Unidade": (cAlias)->B1_UM, ;
+            "Revisao": cDate ,;
+            "Preco": (cAlias)->B1_PRV1})
+    (cAlias)->(DBSkip())
+    nCount++
+
+    if nCount == nEnd
+        exit
+    endif
+enddo
+
+//Se não for o último registro indica que terá próxima página
+self:setHasNext(!(cAlias)->(Eof()))
+
+(cAlias)->(DBCloseArea())
+  
+return self:oData
+  
+method getSchema() as object class SB1TReportsBusinessObject
+local cComboFil as character
+ 
+cComboFil := "D MG 01=Filial BH; D MG 02=Filial Uberaba"
+ 
+self:oSchema:addProperty("Filial", "Filial", "string", "Filial", "B1_FILIAL", cComboFil,.F.)
+self:oSchema:addProperty("Codigo", "Codigo", "string", "Codigo", "B1_COD")
+self:oSchema:addProperty("Descricao", "Descricao", "string", "Descricao","B1_DESC")
+self:oSchema:addProperty("Tipo", "Tipo", "string", "Tipo","B1_TIPO")
+self:oSchema:addProperty("Unidade", "Unidade de medida", "string", "Unidade","B1_UM")
+self:oSchema:addProperty("Revisao", "Revisao", "date", "revisao","B1_UREV")
+self:oSchema:addProperty("Data", "Data", "date", "Data","B1_UREV")
+self:oSchema:addProperty("Preco", "Preço", "number", "Preço","B1_PRV1")
+return self:oSchema

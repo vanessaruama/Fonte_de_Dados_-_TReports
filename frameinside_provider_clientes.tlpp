@@ -1,0 +1,32 @@
+#include "msobject.ch"
+#include "totvs.framework.treports.integratedprovider.th"
+ 
+namespace custom.materiais.produtos.integratedprovider
+ 
+@totvsFrameworkTReportsIntegratedProvider(active=.T.)
+class SA1TReportsBusinessObjectData from totvs.framework.treports.integratedprovider.IntegratedProvider
+    public method new() as object
+    public method getData() as object
+    public method getSchema() as object
+endclass
+ 
+method new() class SA1TReportsBusinessObjectData
+_Super:new()
+//Define a Área
+self:appendArea("Clientes")
+//Define o nome do Objeto de Negócio
+self:setDisplayName("Clientes")
+//Define a descrição do Objeto de Negócio
+self:setDescription("Relatório de Clientes")
+return self
+
+method getData(nPage as numeric, oFilter as object) as object class SA1TReportsBusinessObjectData
+//Define a quantidade máxima por página (Default 100)
+self:setPageSize(50)
+//Transforma a tabela em dados para o relatório
+self:aliasToData("SA1", oFilter)
+return self:oData
+ 
+method getSchema() as object class SA1TReportsBusinessObjectData
+self:aliasToSchema("SA1")
+return self:oSchema
